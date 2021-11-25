@@ -1,0 +1,54 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// This script will let you see via the bar color and the oscillator below if the DXY or any other asset is above or below any of its moving averages, on any timeframe,
+// no matter which asset or timeframe you're currently viewing. It also includes a "Standard Deviation Normalized" view wich can be helpful when comparing with volatile assets.
+// © TchelloSimis
+
+//@version=5
+indicator('DXY and relation to MA', 'DXY/MA', timeframe='D',timeframe_gaps=false)
+
+//Get DXY value
+customSymbol = input.bool(false, title = 'Use custom symbol?')
+symbolInput = input.symbol("", "Custom symbol")
+DXY = customSymbol ? request.security(symbolInput, 'D', close) : request.security('TVC:DXY', 'D', close)
+
+//User Inputs
+len = input.int(title='Length', defval=200, minval=1, maxval=1000)
+cutoff = input.float(title='Cutoff', defval=1, minval=-100, maxval=100)
+out = ta.sma(DXY, len)
+stdevMult = input.float(title='Std. Dev Multiplier', defval=1, minval=0, maxval=100)
+
+//Calculate DXY ratio over MA
+dxysma = (DXY / out)-cutoff
+
+//Default Colors
+riseAbove = #E65100
+fallAbove = #FFA726
+riseBelow = #26C6DA
+fallBelow = #006064
+
+//Use MA slope or Histogram slope
+boolInput = input.bool(false,title='Use MA Slope?')
+histMA = boolInput ? out : dxysma
+
+//Calculate color for SMA distance
+col = dxysma > 0 ? (histMA[1] < histMA ? riseAbove : fallAbove) : (histMA[1] < histMA ? riseBelow : fallBelow)
+
+//Standard deviation
+dxystdev = ta.stdev(DXY, len)
+
+// Standard deviation-normalized DXY
+upperBand = out + stdevMult * (dxystdev)
+lowerBand = out - stdevMult *(dxystdev)
+stdevNorm = (DXY - lowerBand)/(upperBand-lowerBand) - 0.5
+
+//Calculate color for Std. Dev. Normalized
+stdCol = stdevNorm > 0 ? (stdevNorm[1] < stdevNorm ? riseAbove : fallAbove) : (stdevNorm[1] < stdevNorm ? riseBelow : fallBelow)
+
+//Decide which color to use
+chooseCol = input.bool(false,title='Color based on Std. Dev. Normalized?')
+barCol = chooseCol ? stdCol : col
+
+
+plot(stdevNorm, title='Std. Dev. Normalized', style=plot.style_columns, color=stdCol, display=display.none)
+plot(dxysma, title='DXY/SMA',style=plot.style_columns, color=col)
+barcolor(barCol)
