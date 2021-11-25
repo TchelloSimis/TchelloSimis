@@ -1,0 +1,4 @@
+- 👋 Hi, I’m @TchelloSimis
+- 👀 I’m interested in trading, cryptocurrencies, and mathematics
+- 🌱 I’m currently learning how to be a good teacher! 
+- 📫 You can reach me very easily on Discord! My username is Tchello#2288
