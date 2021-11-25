@@ -1,0 +1,42 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// This script makes it possible for you to see wheter any asset on any timeframe is above, testing, or below any of its moving averages, no matter which asset or timeframe
+// you're currently viewing. It also includes an SMA of the difference for smoother visualization ('Smoothing MA')
+// © TchelloSimis
+
+//@version=5
+indicator('Coloring based on MA', 'MA Color', timeframe='D',timeframe_gaps=false)
+
+//Get custom symbol
+symbolInput = input.symbol("", "Custom symbol")
+symbolOutput = request.security(symbolInput, 'D', close)
+
+//User Inputs
+len = input.int(title='Source MA Length', defval=200, minval=1, maxval=1000)
+len2= input.int(title='Smoothing MA Length', defval=20, minval=1, maxval=1000)
+src = input.source(title = 'Source', defval = close)
+stdevMult = input.float(title='Std. Dev Multiplier', defval=0.5, minval=0, maxval=100)
+
+//Calculate distance from MA, and standard deviations
+out = ta.sma(symbolOutput, len)
+minus = symbolOutput - out
+bandWidth = stdevMult * ta.stdev(symbolOutput, len)
+upperBand = out + bandWidth
+lowerBand = out - bandWidth
+
+// SMA of price - SMA
+averaged = ta.sma(minus, len2)
+
+//Default Colors
+riseBelow = #880E4F
+fallBelow = #EC407A
+riseMid = #E65100
+fallMid = #FFA726
+riseAbove = #26C6DA
+fallAbove = #006064
+
+//Decide color
+barCol = symbolOutput > upperBand ? (minus[1] < minus ? riseAbove : fallAbove) : (symbolOutput > lowerBand ? (minus[1] < minus ? riseMid : fallMid) : (minus[1] < minus ? riseBelow : fallBelow))
+
+barcolor(barCol)
+plot(minus, color=barCol, style=plot.style_columns)
+plot(averaged, color=barCol, display=display.none)
