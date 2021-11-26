@@ -1,0 +1,84 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © TchelloSimis
+// This script gives you the short=term bubble risk RSI, with Bollinger Bands and a dispersion zone. 
+//@version=5
+indicator('Short-term bubble risk', 'Price/MA', timeframe='W',timeframe_gaps=false)
+
+//User inputs
+symbolInput = input.symbol("", "Custom symbol", group = 'Choose symbol')
+len = input.int(title = 'Source MA Length', defval=20, minval=1, maxval=10000, group = 'Short-term bubble risk')
+src = input.source(title = 'Source', defval = close,  group = 'Short-term bubble risk')
+EMASMA = input.bool(false, 'Use EMA instead of SMA?',  group = 'Short-term bubble risk')
+bearLVL = input.int(title = 'Bearish threshold', defval = 0, minval = -1000, maxval = 1000,  group = 'Short-term bubble risk')
+businessLVL = input.int(title = 'Business as usual threshold', defval = 25, minval = -1000, maxval = 1000,  group = 'Short-term bubble risk')
+heatingLVL = input.int(title = 'Heating up threshold', defval = 50, minval = -1000, maxval = 1000,  group = 'Short-term bubble risk')
+riskyLVL = input.int(title = 'Risky threshold', defval = 75, minval = -1000, maxval = 1000,  group = 'Short-term bubble risk')
+sriskyLVL = input.int(title = 'Super risky threshold', defval = 100, minval = -1000, maxval = 1000,  group = 'Short-term bubble risk')
+maxLength = input.int(title = 'Upper bound MA length', defval = 20, minval = 2, maxval = 1000, group = 'Upper bound')
+maxMult = input.float(title = 'Upper bound multiplier', defval = 2, minval = -10, maxval = 10, group = 'Upper bound')
+rsiBool = input.bool(true, 'Use EMA instead of SMA on RSI?', group = 'RSI')
+rsiLen = input.int(title = 'RSI length', defval = 28, minval = 2, maxval = 1000, group = 'RSI')
+boolbg = input.bool(false, title = 'Color background if bubble risk > upper bound?', group = 'Upper bound')
+rsiMALen = input.int(title = 'RSI MA length', defval = 89, minval = 2, maxval = 1000, group = 'RSI')
+rsiMult1 = input.float(title = 'RSI std. dev multiplier', defval = 2, minval = -10, maxval = 10, group = 'RSI')
+rsiMult2 = input.float(title = 'RSI dispersion zone multiplier', defval = 0.13, minval = -10, maxval = 10, group = 'RSI')
+
+//Get data from any asset
+symbolOutput = request.security(symbolInput, 'W', src)
+
+//Calculate price/MA
+symbolSMA = ta.sma(symbolOutput, len)
+priceSMA = (symbolOutput-symbolSMA)/symbolSMA
+symbolEMA = ta.ema(symbolOutput, len)
+priceEMA = (symbolOutput-symbolEMA)/symbolEMA
+priceMA = EMASMA ? (priceEMA)*100 : (priceSMA)*100
+
+//Calculate upper bound
+bubbleMA = ta.sma(priceMA, maxLength)
+bubbleStdev = ta.stdev(priceMA, maxLength)
+upperBound = bubbleMA + (maxMult * bubbleStdev)
+
+//Calculate RSI and its Bollinger Bands
+rsi = ta.rsi(priceMA, rsiLen)
+rsiSMA = ta.sma(rsi, rsiMALen)
+rsiEMA = ta.ema(rsi, rsiMALen)
+rsiMA = rsiBool ? rsiEMA : rsiSMA
+rsiStdev = ta.stdev(rsi, rsiMALen)
+rsiUpper = rsiMA + rsiMult1*rsiStdev
+rsiLower = rsiMA - rsiMult1*rsiStdev
+dispUpper = rsiMA + ((rsiUpper-rsiLower)*rsiMult2)
+dispLower = rsiMA - ((rsiUpper-rsiLower)*rsiMult2)
+
+//Calculate bubble risk colors
+bearc = input(#311B92, 'Bearish color',  group = 'Short-term bubble risk')
+businessc =  input(#00BCD4, 'Business as usual color',  group = 'Short-term bubble risk')
+heatingc = input(#009688, 'Heating up color',  group = 'Short-term bubble risk')
+riskyc = input(#FF9800, 'Risky color',  group = 'Short-term bubble risk')
+sriskyc = input(#E65100, 'Super risky color',  group = 'Short-term bubble risk')
+bubblec = input(#E91E63, 'Bubble pop color',  group = 'Short-term bubble risk')
+upperBc = input(#FFFFFF, 'Upper bound color',  group = 'Upper bound')
+coloring = priceMA > sriskyLVL ? bubblec : (priceMA > riskyLVL ? sriskyc : (priceMA > heatingLVL ? riskyc : (priceMA > businessLVL ? heatingc : (priceMA > bearLVL ? businessc : bearc))))
+
+//Calculate RSI Bollinger Band colors
+bandc = input(color.new(#009688, 35), 'Bands color', group = 'RSI')
+rsiMAc = input(color.new(#E91E63, 0), 'RSI MA color', group = 'RSI')
+dispzc = input(color.new(#009688, 80), 'Dispersion zone color', group = 'RSI')
+dispc = input(color.new(#009688, 100), 'Dispersion bands color', group = 'RSI')
+
+//Color background
+backgroundc = boolbg ? input(color.new(#E65100, 80), 'Above upper bound color', group = 'Upper bound') : color.new(#E65100, 100)
+backgroundc2 = input(color.new(#FFFFFF, 100), 'Below upper bound color', group = 'Upper bound')
+colorbg = priceMA > upperBound ? backgroundc : backgroundc2
+
+//Plot things
+plot(priceMA, color = coloring, style=plot.style_area, display=display.none)
+plot(upperBound, color = upperBc, style=plot.style_circles, display=display.none)
+plot(rsi, color = coloring, linewidth = 2)
+plot(rsiMA, color = rsiMAc, linewidth = 2)
+plot(rsiUpper, color = bandc, linewidth = 2)
+plot(rsiLower, color = bandc, linewidth = 2)
+dispL = plot(dispLower, color = dispc)
+dispU = plot(dispUpper, color = dispc)
+fill(plot1 = dispL, plot2 = dispU, color = dispzc)
+bgcolor(colorbg)
+barcolor(coloring)
