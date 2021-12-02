@@ -44,7 +44,7 @@ mult = input.float(defval=2, minval=0, title='Standard deviation multiplier')
 disp = input.float(defval = 0.13, minval = 0, title = 'Dispersion zone multiplier')
 
 //Smoothing MA length
-smooth = input.int(defval = 13, minval = 2, title = 'Smoothing MA length')
+smooth = input.int(defval = 34, minval = 2, title = 'Smoothing MA length')
 
 //Colors
 upC = input.color(color.new(#00BCD4, 85), title = 'Up color')
