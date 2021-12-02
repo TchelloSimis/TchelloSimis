@@ -152,17 +152,17 @@ hullColor2 = switchColor2 ? useHtf2 ? close > HULL2 ? #009688 : #E65100 : HULL2 
 
 //PLOT
 ///< Frame
-Fi1 = plot(MHULL, title='MHULL', color=hullColor, linewidth=thicknesSwitch, transp=100)
-Fi2 = plot(visualSwitch ? SHULL : na, title='SHULL', color=hullColor, linewidth=thicknesSwitch, transp=100)
+Fi1 = plot(MHULL, title='MHULL', color=color.new(hullColor, 100), linewidth=thicknesSwitch)
+Fi2 = plot(visualSwitch ? SHULL : na, title='SHULL', color=color.new(hullColor, 100), linewidth=thicknesSwitch)
 ///< Ending Filler
-fill(Fi1, Fi2, title='Band Filler', color=hullColor, transp=transpSwitch)
+fill(Fi1, Fi2, title='Band Filler', color=color.new(hullColor, transpSwitch))
 
 //PLOT 2
 ///< Frame
-Fi12 = plot(secondHull ? MHULL2 : na, title='MHULL 2', color=hullColor2, linewidth=thicknesSwitch2, transp=100)
-Fi22 = plot(secondHull ? visualSwitch2 ? SHULL2 : na : na, title='SHULL 2', color=hullColor2, linewidth=thicknesSwitch2, transp=100)
+Fi12 = plot(secondHull ? MHULL2 : na, title='MHULL 2', color=color.new(hullColor2, 100), linewidth=thicknesSwitch2)
+Fi22 = plot(secondHull ? visualSwitch2 ? SHULL2 : na : na, title='SHULL 2', color=color.new(hullColor2, 100), linewidth=thicknesSwitch2)
 ///< Ending Filler
-fill(Fi12, Fi22, title='Band Filler 2', color=hullColor2, transp=transpSwitch2)
+fill(Fi12, Fi22, title='Band Filler 2', color=color.new(hullColor2, transpSwitch2))
 
 
 showVwapLine = input(title='VWAP Daily Line', defval=false)
@@ -265,5 +265,4 @@ showVWAP2Bcol = input.bool(false, 'VWAP 3', group='Barcolor')
 // Barcolor Output
 
 barcolor(showVWAP1Bcol ? vwapColoring : showVWAP2Bcol ? vwapColoring2 : vwapcol1 ? close < NormalVwap and O > C ? color.red : close > NormalVwap and O > C ? color.aqua : close < NormalVwap and O < C ? color.orange : color.lime : useHtf2 or lengthMult2 ? candleCol2 ? close > MHULL2 ? color.aqua : color.orange : candleCol2 ? switchColor2 ? hullColor2 : na : candleCol ? switchColor ? hullColor : na : na : na, title='Barcolors')
-
 
