@@ -1,0 +1,269 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Special thanks to: DW, for the original reverse RSI bands script; InSilico for the original Hull suite; and martinweb for the original Extended Hull Suite.
+// This indicator does two main things: 1) It plots 2 HMA bands that change colors with trend direction; and 2) It plots the RSI dispersion zone in the chart, which also
+// changes color based on direction. The dispersion zone settings are the same as the "RSI + BB + EMA + RRSI" Script. 
+
+//@version=5
+indicator('Extended Hull Suite + RSI Dispersion Zone', shorttitle='2x HMA + Dispersion zone', overlay=true)
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Dispersion zone
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//Functions
+
+
+//Reverse Engineered RSI function
+revrsi(x, t, v) =>
+    wper = 2 * t - 1
+    k = 2 / (wper + 1)
+    uc = 0.0
+    uc := x > x[1] ? k * (x - x[1]) + (1 - k) * nz(uc[1]) : (1 - k) * nz(uc[1])
+    dc = 0.0
+    dc := x > x[1] ? (1 - k) * nz(dc[1]) : k * (x[1] - x) + (1 - k) * nz(dc[1])
+    val = (t - 1) * (dc * v / (100 - v) - uc)
+    revrsi = val >= 0 ? x + val : x + val * (100 - v) / v
+    revrsi
+
+
+//Inputs
+
+
+//Source
+rsisrc = input(defval=ohlc4, title='RSI Source')
+
+//EMA length
+per = input.int(89, minval=1, title='EMA length')
+
+//RSI length
+vper = input.int(defval=28, minval=0, title='RSI length')
+
+//Stdev multiplier
+mult = input.float(defval=2, minval=0, title='Standard deviation multiplier')
+
+//Dispersion zone multiplier
+disp = input.float(defval = 0.13, minval = 0, title = 'Dispersion zone multiplier')
+
+//Smoothing MA length
+smooth = input.int(defval = 13, minval = 2, title = 'Smoothing MA length')
+
+//Colors
+upC = input.color(color.new(#00BCD4, 85), title = 'Up color')
+downC = input.color(color.new(color.orange, 85), title = 'Down color')
+
+//Definitions
+
+rsi = ta.rsi(rsisrc, vper)
+stdev = ta.stdev(rsi, per)
+rsiema = ta.ema(rsi, per)
+upperB = rsiema + (mult*stdev)
+lowerB = rsiema - (mult*stdev)
+upperD = rsiema + ((upperB-lowerB)*disp)
+lowerD = rsiema - ((upperB-lowerB)*disp)
+
+//Reverse RSI Volatitlity
+hiband = revrsi(rsisrc, vper, upperD)
+loband = revrsi(rsisrc, vper, lowerD)
+midband = ta.ema((hiband + loband)/2, smooth)
+dispC = midband > midband[1] ? upC : downC
+
+//Plot stuff
+
+hibandP = plot(hiband, display = display.none, title = "Upper dispersion zone")
+lobandP = plot(loband, display = display.none, title = 'Lower dispersion zone')
+fill(plot1 = lobandP, plot2 = hibandP, title = 'Dispersion zone fill', color = dispC)
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Hull Suite
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//INPUT
+src = input.source(close, title='Source', group='First Hull Settings')
+modeSwitch = input.string('Hma', title='Hull Variation', options=['SMA', 'EMA', 'Hma', 'Thma', 'Ehma'], group='First Hull Settings')
+length = input.int(55, title='Length(180-200 for floating S/R , 55 for swing entry)', group='First Hull Settings')
+lengthMult = input.float(1.0, title='Length multiplier (Used to view higher timeframes with straight band)', group='First Hull Settings')
+
+useHtf = input.bool(false, title='Show Hull MA from X timeframe? (good for scalping)', group='First Hull Settings')
+htf = input.timeframe('240', title='Higher timeframe', group='First Hull Settings')
+
+switchColor = input.bool(true, 'Color Hull according to trend?', group='First Hull Settings')
+visualSwitch = input.bool(true, title='Show as a Band?', group='First Hull Settings')
+thicknesSwitch = input.int(1, title='Line Thickness', group='First Hull Settings')
+transpSwitch = input.int(50, title='Band Transparency', step=5, group='First Hull Settings')
+
+//INPUT Second Hull
+secondHull = input.bool(true, title='Second Hull', group='Second Hull Settings')
+src2 = input(close, title='Source')
+modeSwitch2 = input.string('Hma', title='Hull Variation', options=['SMA', 'EMA', 'Hma', 'Thma', 'Ehma'], group='Second Hull Settings')
+length2 = input(200, title='Length(180-200 for floating S/R , 55 for swing entry)')
+lengthMult2 = input.float(1.0, title='Length multiplier (Used to view higher timeframes with straight band)', group='Second Hull Settings')
+
+useHtf2 = input.bool(false, title='Show Hull MA from X timeframe? (good for scalping)', group='Second Hull Settings')
+htf2 = input.timeframe('240', title='Higher timeframe', group='Second Hull Settings')
+switchColor2 = input.bool(true, 'Color Hull according to trend?', group='Second Hull Settings')
+
+visualSwitch2 = input.bool(true, title='Show as a Band?', group='Second Hull Settings')
+thicknesSwitch2 = input.int(1, title='Line Thickness', group='Second Hull Settings')
+transpSwitch2 = input.int(50, title='Band Transparency', step=5, group='Second Hull Settings')
+
+//FUNCTIONS
+//HMA
+HMA(_src, _length) =>
+    ta.wma(2 * ta.wma(_src, _length / 2) - ta.wma(_src, _length), math.round(math.sqrt(_length)))
+//EHMA    
+EHMA(_src, _length) =>
+    ta.ema(2 * ta.ema(_src, _length / 2) - ta.ema(_src, _length), math.round(math.sqrt(_length)))
+//THMA    
+THMA(_src, _length) =>
+    ta.wma(ta.wma(_src, _length / 3) * 3 - ta.wma(_src, _length / 2) - ta.wma(_src, _length), _length)
+//EMA and SMA
+EMA(_src, _length) =>
+    ta.sma(_src, _length)
+SMA(_src, _length) =>
+    ta.ema(_src, _length)
+
+//SWITCH
+Mode(modeSwitch, srch1, len) =>
+    modeSwitch == 'SMA' ? SMA(srch1, len) : modeSwitch == 'EMA' ? EMA(srch1, len) : modeSwitch == 'Hma' ? HMA(srch1, len) : modeSwitch == 'Ehma' ? EHMA(srch1, len) : modeSwitch == 'Thma' ? THMA(srch1, len / 2) : na
+
+//SWITCH 2
+Mode2(modeSwitch2, srch2, len2) =>
+    modeSwitch2 == 'SMA' ? SMA(srch2, len2) : modeSwitch2 == 'EMA' ? EMA(srch2, len2) : modeSwitch2 == 'Hma' ? HMA(srch2, len2) : modeSwitch2 == 'Ehma' ? EHMA(srch2, len2) : modeSwitch2 == 'Thma' ? THMA(srch2, len2 / 2) : na
+
+
+//OUT
+_hull = Mode(modeSwitch, src, int(length * lengthMult))
+HULL = useHtf ? request.security(syminfo.ticker, htf, _hull) : _hull
+MHULL = HULL[0]
+SHULL = HULL[2]
+
+//OUT 2
+_hull2 = Mode2(modeSwitch2, src2, int(length2 * lengthMult2))
+HULL2 = useHtf2 ? request.security(syminfo.ticker, htf2, _hull2) : _hull2
+MHULL2 = HULL2[0]
+SHULL2 = HULL2[2]
+
+//COLOR
+hullColor = switchColor ? useHtf ? close > HULL ? #673AB7 : #E91E63 : HULL > HULL[2] ? #673AB7 : #E91E63 : #673AB7
+
+//COLOR 2
+hullColor2 = switchColor2 ? useHtf2 ? close > HULL2 ? #009688 : #E65100 : HULL2 > HULL2[2] ? #009688 : #E65100 : #009688
+
+//PLOT
+///< Frame
+Fi1 = plot(MHULL, title='MHULL', color=hullColor, linewidth=thicknesSwitch, transp=100)
+Fi2 = plot(visualSwitch ? SHULL : na, title='SHULL', color=hullColor, linewidth=thicknesSwitch, transp=100)
+///< Ending Filler
+fill(Fi1, Fi2, title='Band Filler', color=hullColor, transp=transpSwitch)
+
+//PLOT 2
+///< Frame
+Fi12 = plot(secondHull ? MHULL2 : na, title='MHULL 2', color=hullColor2, linewidth=thicknesSwitch2, transp=100)
+Fi22 = plot(secondHull ? visualSwitch2 ? SHULL2 : na : na, title='SHULL 2', color=hullColor2, linewidth=thicknesSwitch2, transp=100)
+///< Ending Filler
+fill(Fi12, Fi22, title='Band Filler 2', color=hullColor2, transp=transpSwitch2)
+
+
+showVwapLine = input(title='VWAP Daily Line', defval=false)
+showVwap = input(title='VWAP Daily Volume Candles', defval=false)
+left = input(30, title='VWAP Daily Candles # bars to the left')
+
+vwap1On = input(false, 'VWAP 2')
+vwap2On = input(false, 'VWAP 3')
+
+TimeFrame1 = input('W', 'VWAP 2 Timeframe')
+TimeFrame2 = input('M', 'VWAP 3 Timeframe')
+lstyle1 = input.string(title='VWAP Line-Style', options=['Solid', 'Circles', 'Cross'], defval='Cross')
+linestyle1 = lstyle1 == 'Solid' ? plot.style_line : lstyle1 == 'Circles' ? plot.style_circles : plot.style_cross
+fillOn = input(title='Fill VWAP 2 and 3', defval=false)
+
+showPrevVWAP1 = input(false, title='VWAP 2 previous close')
+showPrevVWAP2 = input(false, title='VWAP 3 previous close')
+lstyle2 = input.string(title='VWAP Previous Close Line-Style', options=['Solid', 'Circles', 'Cross'], defval='Cross')
+linestyle2 = lstyle2 == 'Solid' ? plot.style_line : lstyle2 == 'Circles' ? plot.style_circles : plot.style_cross
+
+// VWAP 2 & 3
+start = request.security(syminfo.tickerid, TimeFrame1, time)
+change_1 = ta.change(start)
+newSession = change_1 ? 1 : 0
+vwapsum = 0.0
+volumesum = 0.0
+vwapsum := newSession ? hl2 * volume : vwapsum[1] + hl2 * volume
+volumesum := newSession ? volume : volumesum[1] + volume
+v2sum = 0.0
+v2sum := newSession ? volume * hl2 * hl2 : v2sum[1] + volume * hl2 * hl2
+myvwap = vwapsum / volumesum
+dev = math.sqrt(math.max(v2sum / volumesum - myvwap * myvwap, 0))
+vwapColoring = close > myvwap ? color.blue : color.yellow
+av = myvwap
+
+prevwap = 0.0
+prevwap := newSession ? myvwap[1] : prevwap[1]
+plot(showPrevVWAP1 ? prevwap : na, style=linestyle2, color=close > prevwap ? color.blue : color.yellow, transp=50)
+A = plot(vwap1On ? av : na, style=linestyle1, color=vwapColoring)
+
+start2 = request.security(syminfo.tickerid, TimeFrame2, time)
+change_2 = ta.change(start2)
+newSession2 = change_2 ? 1 : 0
+vwapsum2 = 0.0
+volumesum2 = 0.0
+vwapsum2 := newSession2 ? hl2 * volume : vwapsum2[1] + hl2 * volume
+volumesum2 := newSession2 ? volume : volumesum2[1] + volume
+v2sum2 = 0.0
+v2sum2 := newSession2 ? volume * hl2 * hl2 : v2sum2[1] + volume * hl2 * hl2
+myvwap2 = vwapsum2 / volumesum2
+dev2 = math.sqrt(math.max(v2sum2 / volumesum2 - myvwap2 * myvwap2, 0))
+vwapColoring2 = close > myvwap2 ? color.aqua : color.orange
+av2 = myvwap2
+
+prevwap2 = 0.0
+prevwap2 := newSession2 ? myvwap2[1] : prevwap2[1]
+plot(showPrevVWAP2 ? prevwap2 : na, style=linestyle2, color=close > prevwap ? color.aqua : color.orange, transp=50)
+A2 = plot(vwap2On ? av2 : na, style=linestyle1, color=vwapColoring2)
+
+vwapcol = av2 > av ? color.maroon : color.aqua
+
+fill(A2, A, fillOn ? vwapcol : na, transp=90)
+
+// Daily VWAP & Vwap Candles
+NormalVwap = ta.vwap(hlc3)
+H = ta.vwap(high)
+L = ta.vwap(low)
+O = ta.vwap(open)
+C = ta.vwap(close)
+
+left_low = ta.lowest(left)
+left_high = ta.highest(left)
+newlow = low <= left_low
+newhigh = high >= left_high
+wc = color.new(color.black, transp=100)
+
+q = ta.barssince(newlow)
+w = ta.barssince(newhigh)
+col2 = showVwap ? q < w ? #8B3A3A : #9CBA7F : wc
+col2b = showVwap ? O > C ? #ff004d : color.lime : wc
+col2c = showVwapLine ? O > C ? #ff004d : color.lime : wc
+//plot(H)
+//plot(L)
+
+AVGHL = math.avg(H, L)
+AVGOC = math.avg(O, C)
+col = showVwap ? AVGHL > AVGOC ? color.lime : color.red : wc
+col3 = showVwap ? open > AVGOC ? color.lime : color.red : wc
+
+plotcandle(O, H, L, C, color=col2b, wickcolor=wc, bordercolor=wc)
+plot(showVwapLine ? NormalVwap : na, color=col2c)
+
+// Barcolor Output
+candleCol = input.bool(false, title='Hull 1', group='Barcolor')
+candleCol2 = input.bool(false, title='Hull 2', group='Barcolor')
+vwapcol1 = input.bool(false, 'VWAP Daily + OC Check', group='Barcolor')
+showVWAP1Bcol = input.bool(false, 'VWAP 2', group='Barcolor')
+showVWAP2Bcol = input.bool(false, 'VWAP 3', group='Barcolor')
+
+// Barcolor Output
+
+barcolor(showVWAP1Bcol ? vwapColoring : showVWAP2Bcol ? vwapColoring2 : vwapcol1 ? close < NormalVwap and O > C ? color.red : close > NormalVwap and O > C ? color.aqua : close < NormalVwap and O < C ? color.orange : color.lime : useHtf2 or lengthMult2 ? candleCol2 ? close > MHULL2 ? color.aqua : color.orange : candleCol2 ? switchColor2 ? hullColor2 : na : candleCol ? switchColor ? hullColor : na : na : na, title='Barcolors')
+
+
+
+
