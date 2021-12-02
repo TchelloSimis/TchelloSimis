@@ -29,26 +29,26 @@ revrsi(x, t, v) =>
 
 
 //Source
-rsisrc = input(defval=ohlc4, title='RSI Source')
+rsisrc = input(defval=ohlc4, title='RSI Source', group = 'RSI settings')
 
 //EMA length
-per = input.int(89, minval=1, title='EMA length')
+per = input.int(89, minval=1, title='EMA length', group = 'RSI settings')
 
 //RSI length
-vper = input.int(defval=28, minval=0, title='RSI length')
+vper = input.int(defval=28, minval=0, title='RSI length', group = 'RSI settings')
 
 //Stdev multiplier
-mult = input.float(defval=2, minval=0, title='Standard deviation multiplier')
+mult = input.float(defval=2, minval=0, title='Standard deviation multiplier', group = 'RSI settings')
 
 //Dispersion zone multiplier
-disp = input.float(defval = 0.13, minval = 0, title = 'Dispersion zone multiplier')
+disp = input.float(defval = 0.13, minval = 0, title = 'Dispersion zone multiplier', group = 'RSI settings')
 
 //Smoothing MA length
-smooth = input.int(defval = 34, minval = 2, title = 'Smoothing MA length')
+smooth = input.int(defval = 34, minval = 2, title = 'Smoothing MA length', group = 'RSI settings')
 
 //Colors
-upC = input.color(color.new(#00BCD4, 85), title = 'Up color')
-downC = input.color(color.new(color.orange, 85), title = 'Down color')
+upC = input.color(color.new(#00BCD4, 85), title = 'Up color', group = 'RSI settings')
+downC = input.color(color.new(color.orange, 85), title = 'Down color', group = 'RSI settings')
 
 //Definitions
 
@@ -65,12 +65,14 @@ hiband = revrsi(rsisrc, vper, upperD)
 loband = revrsi(rsisrc, vper, lowerD)
 midband = ta.ema((hiband + loband)/2, smooth)
 dispC = midband > midband[1] ? upC : downC
+midC = midband > midband[1] ? color.new(upC, 30) : color.new(downC, 30)
 
 //Plot stuff
 
 hibandP = plot(hiband, display = display.none, title = "Upper dispersion zone")
 lobandP = plot(loband, display = display.none, title = 'Lower dispersion zone')
 fill(plot1 = lobandP, plot2 = hibandP, title = 'Dispersion zone fill', color = dispC)
+plot((hiband + loband)/2, title = 'Dispersion zone mid band', color = midC)
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 //Hull Suite
@@ -263,7 +265,5 @@ showVWAP2Bcol = input.bool(false, 'VWAP 3', group='Barcolor')
 // Barcolor Output
 
 barcolor(showVWAP1Bcol ? vwapColoring : showVWAP2Bcol ? vwapColoring2 : vwapcol1 ? close < NormalVwap and O > C ? color.red : close > NormalVwap and O > C ? color.aqua : close < NormalVwap and O < C ? color.orange : color.lime : useHtf2 or lengthMult2 ? candleCol2 ? close > MHULL2 ? color.aqua : color.orange : candleCol2 ? switchColor2 ? hullColor2 : na : candleCol ? switchColor ? hullColor : na : na : na, title='Barcolors')
-
-
 
 
