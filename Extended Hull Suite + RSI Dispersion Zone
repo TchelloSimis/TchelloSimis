@@ -46,9 +46,19 @@ disp = input.float(defval = 0.13, minval = 0, title = 'Dispersion zone multiplie
 //Smoothing MA length
 smooth = input.int(defval = 34, minval = 2, title = 'Smoothing MA length', group = 'RSI settings')
 
+//Bool inputs
+bool1 = input.bool(true, title = 'Plot Dispersion Zone?', group = 'RSI settings')
+bool2 = input.bool(true, title = 'Plot Dispersion Zone mid band?', group = 'RSI settings')
+bool3 = input.bool(false, title = 'Plot mid band EMA?', group = 'RSI settings')
+color1 = bool1? 85 : 100
+color2 = bool2 ? 30 : 100
+color3 = bool3 ? 20 : 100
+
 //Colors
-upC = input.color(color.new(#00BCD4, 85), title = 'Up color', group = 'RSI settings')
-downC = input.color(color.new(color.orange, 85), title = 'Down color', group = 'RSI settings')
+upbC = input.color(color.new(#00BCD4, 85), title = 'Up color', group = 'RSI settings')
+downbC = input.color(color.new(color.orange, 85), title = 'Down color', group = 'RSI settings')
+upC = color.new(upbC, color1)
+downC = color.new(downbC, color1)
 
 //Definitions
 
@@ -65,7 +75,8 @@ hiband = revrsi(rsisrc, vper, upperD)
 loband = revrsi(rsisrc, vper, lowerD)
 midband = ta.ema((hiband + loband)/2, smooth)
 dispC = midband > midband[1] ? upC : downC
-midC = midband > midband[1] ? color.new(upC, 30) : color.new(downC, 30)
+midC = midband > midband[1] ? color.new(upC, color2) : color.new(downC, color2)
+midc2 = midband > midband[1] ? color.new(upC, color3) : color.new(downC, color3)
 
 //Plot stuff
 
@@ -73,6 +84,7 @@ hibandP = plot(hiband, display = display.none, title = "Upper dispersion zone")
 lobandP = plot(loband, display = display.none, title = 'Lower dispersion zone')
 fill(plot1 = lobandP, plot2 = hibandP, title = 'Dispersion zone fill', color = dispC)
 plot((hiband + loband)/2, title = 'Dispersion zone mid band', color = midC)
+plot(midband, title = 'Mid band EMA', color = midc2, linewidth = 2)
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 //Hull Suite
@@ -88,7 +100,7 @@ useHtf = input.bool(false, title='Show Hull MA from X timeframe? (good for scalp
 htf = input.timeframe('240', title='Higher timeframe', group='First Hull Settings')
 
 switchColor = input.bool(true, 'Color Hull according to trend?', group='First Hull Settings')
-visualSwitch = input.bool(true, title='Show as a Band?', group='First Hull Settings')
+visualSwitch = input.bool(false, title='Show as a Band?', group='First Hull Settings')
 thicknesSwitch = input.int(1, title='Line Thickness', group='First Hull Settings')
 transpSwitch = input.int(50, title='Band Transparency', step=5, group='First Hull Settings')
 
@@ -103,7 +115,7 @@ useHtf2 = input.bool(false, title='Show Hull MA from X timeframe? (good for scal
 htf2 = input.timeframe('240', title='Higher timeframe', group='Second Hull Settings')
 switchColor2 = input.bool(true, 'Color Hull according to trend?', group='Second Hull Settings')
 
-visualSwitch2 = input.bool(true, title='Show as a Band?', group='Second Hull Settings')
+visualSwitch2 = input.bool(false, title='Show as a Band?', group='Second Hull Settings')
 thicknesSwitch2 = input.int(1, title='Line Thickness', group='Second Hull Settings')
 transpSwitch2 = input.int(50, title='Band Transparency', step=5, group='Second Hull Settings')
 
@@ -265,4 +277,3 @@ showVWAP2Bcol = input.bool(false, 'VWAP 3', group='Barcolor')
 // Barcolor Output
 
 barcolor(showVWAP1Bcol ? vwapColoring : showVWAP2Bcol ? vwapColoring2 : vwapcol1 ? close < NormalVwap and O > C ? color.red : close > NormalVwap and O > C ? color.aqua : close < NormalVwap and O < C ? color.orange : color.lime : useHtf2 or lengthMult2 ? candleCol2 ? close > MHULL2 ? color.aqua : color.orange : candleCol2 ? switchColor2 ? hullColor2 : na : candleCol ? switchColor ? hullColor : na : na : na, title='Barcolors')
-
