@@ -41,7 +41,7 @@ vper = input.int(defval=28, minval=0, title='RSI length', group = 'RSI settings'
 mult = input.float(defval=2, minval=0, title='Standard deviation multiplier', group = 'RSI settings')
 
 //Dispersion zone multiplier
-disp = input.float(defval = 0.13, minval = 0, title = 'Dispersion zone multiplier', group = 'RSI settings')
+disp = input.float(defval = 0.13, minval = 0, title = 'Dispersion zone multiplier', group = 'RSI settings', step = 0.01)
 
 //Smoothing MA length
 smooth = input.int(defval = 34, minval = 2, title = 'Smoothing MA length', group = 'RSI settings')
