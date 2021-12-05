@@ -1,0 +1,45 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// This script plots the On-Balance volume along with a Arnaud Legoux Moving average and a dispersion zone. Everything changes colors based on the trend. 
+
+//@version=5
+indicator(title="On Balance Volume + ALMA + Dispersion Zone", shorttitle="OBV+ALMA+DZ", format=format.volume, timeframe="", timeframe_gaps=true)
+
+// OBV
+var cumVol = 0.
+cumVol += nz(volume)
+if barstate.islast and cumVol == 0
+    runtime.error("No volume is provided by the data vendor.")
+    
+// Inputs
+src = input.source(close, title = 'Source')
+len = input.int(89, title = 'ALMA Length')
+offset = input.float(0.5, title = 'ALMA Offset', minval = 0, maxval = 1, step = 0.01, tooltip = 'Controls the tradeoff between uniformity (closer to 1) and responsiveness (closer to 0).')
+sigma = input.float(5, title = 'ALMA Sigma', minval = 0, tooltip = 'Changes ALMA uniformity. Larger values imply more uniform ALMA.')
+mult = input.float(0.21, title = 'Dispersion Zone Multiplier', maxval = 1, minval = 0, step = 0.01)
+obvUp = input.color(#26C6DA, title = 'OBV Up Color')
+obvMid = input.color(#FFB74D, title = 'OBV Mid Color')
+obvDown = input.color(#EC407A, title = 'OBV Down Color')
+maUp = input.color(#009688, title = 'Dispersion Zone Up Color')
+maDown = input.color(#783DB0, title = 'Dispersion Zone Down Color')
+
+// Definitions
+obv = ta.cum(math.sign(ta.change(src)) * volume)
+sma = ta.sma(obv, len)
+ma = ta.alma(obv, len, offset, sigma)
+stand = ta.stdev(obv, len)
+upperB = ma + 2*stand
+lowerB = ma - 2*stand
+upperD = ma + ((upperB-lowerB)*mult)
+lowerD = ma - ((upperB-lowerB)*mult)
+
+// Colors
+obvC = obv > upperD ? obvUp : (obv > lowerD ? obvMid : obvDown)
+maC = sma > sma[1] ? maUp : maDown
+dispC = color.new(maC, 80)
+
+//Plots
+lower = plot(lowerD, display = display.none)
+upper = plot(upperD, display = display.none)
+fill(lower, upper, color = dispC)
+plot(obv, color=obvC, title="OBV", linewidth = 3)
+plot(ma, color = maC, linewidth = 2)
