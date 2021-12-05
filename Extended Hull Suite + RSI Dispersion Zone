@@ -44,12 +44,12 @@ mult = input.float(defval=2, minval=0, title='Standard deviation multiplier', gr
 disp = input.float(defval = 0.13, minval = 0, title = 'Dispersion zone multiplier', group = 'RSI settings', step = 0.01)
 
 //Smoothing MA length
-smooth = input.int(defval = 34, minval = 2, title = 'Smoothing MA length', group = 'RSI settings')
+smooth = input.int(defval = 34, minval = 2, title = 'Color Smoothing HMA length', group = 'RSI settings')
 
 //Bool inputs
 bool1 = input.bool(true, title = 'Plot Dispersion Zone?', group = 'RSI settings')
 bool2 = input.bool(true, title = 'Plot Dispersion Zone mid band?', group = 'RSI settings')
-bool3 = input.bool(false, title = 'Plot mid band EMA?', group = 'RSI settings')
+bool3 = input.bool(false, title = 'Plot mid band HMA?', group = 'RSI settings')
 color1 = bool1? 85 : 100
 color2 = bool2 ? 30 : 100
 color3 = bool3 ? 20 : 100
