@@ -73,7 +73,7 @@ lowerD = rsiema - ((upperB-lowerB)*disp)
 //Reverse RSI Volatitlity
 hiband = revrsi(rsisrc, vper, upperD)
 loband = revrsi(rsisrc, vper, lowerD)
-midband = ta.ema((hiband + loband)/2, smooth)
+midband = ta.hma((hiband + loband)/2, smooth)
 dispC = midband > midband[1] ? upC : downC
 midC = midband > midband[1] ? color.new(upC, color2) : color.new(downC, color2)
 midc2 = midband > midband[1] ? color.new(upC, color3) : color.new(downC, color3)
