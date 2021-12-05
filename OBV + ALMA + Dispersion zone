@@ -2,7 +2,7 @@
 // This script plots the On-Balance volume along with a Arnaud Legoux Moving average and a dispersion zone. Everything changes colors based on the trend. 
 
 //@version=5
-indicator(title="On Balance Volume + ALMA + Dispersion Zone", shorttitle="OBV+ALMA+DZ", format=format.volume, timeframe="", timeframe_gaps=true)
+indicator(title="On Balance Volume + ALMA + Dispersion Zone", shorttitle="OBV + ALMA + DZ", format=format.volume, timeframe="", timeframe_gaps=true)
 
 // OBV
 var cumVol = 0.
@@ -11,16 +11,16 @@ if barstate.islast and cumVol == 0
     runtime.error("No volume is provided by the data vendor.")
     
 // Inputs
-src = input.source(close, title = 'Source')
+src = input.source(close, title = 'Source', group = 'OBV and ALMA Settings')
 len = input.int(89, title = 'ALMA Length')
-offset = input.float(0.5, title = 'ALMA Offset', minval = 0, maxval = 1, step = 0.01, tooltip = 'Controls the tradeoff between uniformity (closer to 1) and responsiveness (closer to 0).')
-sigma = input.float(5, title = 'ALMA Sigma', minval = 0, tooltip = 'Changes ALMA uniformity. Larger values imply more uniform ALMA.')
-mult = input.float(0.21, title = 'Dispersion Zone Multiplier', maxval = 1, minval = 0, step = 0.01)
-obvUp = input.color(#26C6DA, title = 'OBV Up Color')
-obvMid = input.color(#FFB74D, title = 'OBV Mid Color')
-obvDown = input.color(#EC407A, title = 'OBV Down Color')
-maUp = input.color(#009688, title = 'Dispersion Zone Up Color')
-maDown = input.color(#783DB0, title = 'Dispersion Zone Down Color')
+offset = input.float(0.5, title = 'ALMA Offset', minval = 0, maxval = 1, step = 0.01, tooltip = 'Controls the tradeoff between uniformity (closer to 1) and responsiveness (closer to 0).', group = 'OBV and ALMA Settings')
+sigma = input.float(5, title = 'ALMA Sigma', minval = 0, tooltip = 'Changes ALMA uniformity. Larger values imply more uniform ALMA.', group = 'OBV and ALMA Settings')
+mult = input.float(0.21, title = 'Dispersion Zone Multiplier', maxval = 1, minval = 0, step = 0.01, group = 'Dispersion Zone Settings')
+obvUp = input.color(#26C6DA, title = 'OBV Up Color', group = 'OBV and ALMA Settings')
+obvMid = input.color(#FFB74D, title = 'OBV Mid Color', group = 'OBV and ALMA Settings')
+obvDown = input.color(#EC407A, title = 'OBV Down Color', group = 'OBV and ALMA Settings')
+maUp = input.color(#009688, title = 'Dispersion Zone Up Color', group = 'Dispersion Zone Settings')
+maDown = input.color(#783DB0, title = 'Dispersion Zone Down Color', group = 'Dispersion Zone Settings')
 
 // Definitions
 obv = ta.cum(math.sign(ta.change(src)) * volume)
@@ -42,4 +42,4 @@ lower = plot(lowerD, display = display.none)
 upper = plot(upperD, display = display.none)
 fill(lower, upper, color = dispC)
 plot(obv, color=obvC, title="OBV", linewidth = 3)
-plot(ma, color = maC, linewidth = 2)
+plot(ma, color = maC, linewidth = 2, title = 'ALMA')
