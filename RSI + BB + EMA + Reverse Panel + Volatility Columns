@@ -1,0 +1,159 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// This script provides you with the RSI of an asset, an EMA of it, and Bollinger Bands. It also provides you with tools for a reverse function calculator. The volatility columns
+// are an average of HVP (Historical Volatility Percentile) and BB %B (Bollinger Bands %B). High volatility implies a riskier trade. 
+// Special thanks to © balipour for creating the original reverse RSI function and to Franklin Moormann (cheatcountry) for the HVP code. © TchelloSimis
+
+//@version=5
+indicator(title='RSI + BB + EMA with Reverse Calculator Panel and Volatility Columns', shorttitle='RSI + EMA + BB + RRSI + Volatility', overlay=false)
+
+//Settings
+src = input(ohlc4, 'Source', group = 'RSI settings')
+len = input.int(28, 'RSI Length', minval=2, group = 'RSI settings')
+lenema = input.int(89, 'EMA Length', minval=2, group = 'RSI BB Settings')
+pan = input(true, ' Show Information Panel', group = 'Reverse RSI settings')
+dec = input.int(1, 'Number of Decimals', minval=0, maxval=10, group = 'Reverse RSI settings')
+off = input.int(35, 'Panel Position Offset', minval=0, group = 'Reverse RSI settings')
+s = input(false, 'Show Price given RSI', group = 'Reverse RSI settings')
+ersi = input(40.0, 'RSI', group = 'Reverse RSI settings')
+s2 = input(false, 'Show RSI given Price', group = 'Reverse RSI settings')
+ip = input.float(10000, 'Price', group = 'Reverse RSI settings')
+
+//Reverse RSI Functions
+reverse(Level) =>
+    x1 = (len - 1) * (ta.rma(math.max(nz(src[1], src) - src, 0), len) * Level / (100 - Level) - ta.rma(math.max(src - nz(src[1], src), 0), len))
+    x1 >= 0 ? src + x1 : src + x1 * (100 - Level) / Level
+
+//RSI
+rsi = ta.rsi(src, len)
+stdevmult = input.float(2, 'RSI std. dev multiplier', minval = 0, group = 'RSI BB Settings')
+dispmult = input.float(0.13, 'RSI dispersion zone multiplier', minval = 0, group = 'RSI BB Settings')
+
+//RSIEMA
+ma = ta.ema(rsi, lenema)
+stdev = ta.stdev(rsi, lenema)
+upperBand = ma + stdevmult*stdev
+lowerBand = ma - stdevmult*stdev
+upperDisp = ma + ((upperBand-lowerBand)*dispmult)
+lowerDisp = ma - ((upperBand-lowerBand)*dispmult)
+ob = upperBand
+os = lowerBand
+
+// Volatility Inputs
+hvpsrc = input(title='Source', defval=ohlc4, group = 'Volatility Settings')
+length = input.int(title='HVP Length', defval=20, minval=1, group = 'Volatility Settings')
+annualLength = input.int(title='HVP Annual Length', defval=365, minval=1, group = 'Volatility Settings')
+blength = input.int(20, minval=1, title = 'Bollinger Bands Length', group = 'Volatility Settings')
+bsrc = hvpsrc
+bmult = input.float(2.0, minval=0.001, maxval=50, title="Bollinger Bands Std. Dev. Multiplier", group = 'Volatility Settings')
+plotif = input.bool(true, title = 'Show Volatility Columns?', group = 'Volatility Settings')
+lowcol = input.color(#00BCD4, title = 'Low Volatility Color', group = 'Volatility Settings')
+midcol = input.color(color.yellow, title = 'Medium Volatility Color', group = 'Volatility Settings')
+highcol = input.color(#E91E63, title = 'High Volatility Color', group = 'Volatility Settings')
+voltransp = input.int(15, title = 'Volatility Columns Opacity', group = 'Volatility Settings')
+bartoggle = input.bool(false, title = 'Color Candles Based on Volatility?', group = 'Volatility Settings')
+
+// BB %B Calculation
+bbasis = ta.sma(bsrc, length)
+bdev = bmult * ta.stdev(bsrc, blength)
+bupper = bbasis + bdev
+blower = bbasis - bdev
+bbr = ((bsrc - blower)/(bupper - blower))*100
+
+// Stdev function
+r = math.log(hvpsrc / nz(hvpsrc[1], hvpsrc))
+rAvg = ta.sma(r, length)
+hv = math.sqrt(math.sum(math.pow(r - rAvg, 2), length) / (length - 1)) * math.sqrt(annualLength)
+
+// HVP Calculation
+count = 0.
+for i = 0 to annualLength - 1 by 1
+    count += (nz(hv[i]) < hv ? 1 : 0)
+    count
+hvp1 = count / annualLength * 100
+hvp2 = (bbr+hvp1)/2
+hvp = hvp2 > 100 ? 100 : (hvp2 < 0 ? 0 : hvp2)
+
+hvpColor = hvp > 50 ? color.from_gradient(hvp, 50, 100, midcol, highcol) : color.from_gradient(hvp, 0, 50, lowcol, midcol)
+columncolor = plotif ? color.new(hvpColor, 100-voltransp) : color.new(hvpColor, 100)
+colorBars = bartoggle ? hvpColor : na
+
+//Plot BB and volatility
+bbUpper = plot(upperBand, color=color.new(#009688, 20), linewidth = 2, title = 'Upper Band')
+bbLower = plot(lowerBand, color=color.new(#009688, 20), linewidth = 2, title = 'Lower Band')
+lowDisp = plot(lowerDisp, color=color.new(#009688, 100), editable = false)
+highDisp = plot(upperDisp, color=color.new(#009688, 100), editable = false)
+fill(plot1 = lowDisp, plot2= highDisp, color=color.new(#009688, 80), title = 'Dispersion Zone')
+plot(hvp, style=plot.style_columns, color = columncolor, title = 'Volatility Columns')
+barcolor(colorBars, title = 'Volatility Candles')
+
+
+//Decide RSI color
+rsiColoring = rsi > upperDisp ? #00BCD4 : (rsi > lowerDisp ? #FFEB3B : #E65100)
+
+//Reverse RSI Price Level Calculations
+revma = reverse(ma)
+revob = reverse(ob)
+revos = reverse(os)
+reversi = reverse(ersi)
+
+//Reverse Reverse RSI
+rr(input) =>
+    alpha = 1 / len
+    up1 = ta.rma(math.max(ta.change(src), 0), len)
+    down1 = ta.rma(-math.min(ta.change(src), 0), len)
+    up = alpha * math.max(input - src[1], 0) + (1 - alpha) * nz(up1[1])
+    down = alpha * -math.min(input - src[1], 0) + (1 - alpha) * nz(down1[1])
+    rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - 100 / (1 + up / down)
+    rsi
+
+
+rrrsi = rr(ip)
+
+
+//Plots
+
+plot(rsi, color=rsiColoring, linewidth=3, title = 'RSI')
+plot(ma, color=#E91E63, style=plot.style_line, linewidth=2, title = 'RSI EMA')
+
+plot(s ? ersi : na, 'Entered RSI Value', color=color.new(color.lime, 100), trackprice=true, show_last=1)
+plot(s2 ? rrrsi : na, 'RSI Value for Entered Price', color=color.new(color.red, 100), trackprice=true, show_last=1)
+//Information Panel
+labelstyle = label.style_label_center
+labelstyle2 = label.style_label_down
+
+labelc = color.new(#000000, 100)
+
+
+
+//Round Function
+Round(src, digits) =>
+    p = math.pow(10, digits)
+    math.round(math.abs(src) * p) / p * math.sign(src)
+
+//Offset 
+xp(offset) =>
+    time + math.round(ta.change(time) * offset)
+
+lable1(offset, P, T, s, color_PnL) =>
+    label PnL_Label = na
+    PnL_Label := label.new(xp(offset), P, text=T, color=color_PnL, textcolor=color.white, style=s, yloc=yloc.price, xloc=xloc.bar_time, size=size.normal)
+    label.delete(PnL_Label[1])
+
+
+ud() =>
+    if rsi < ma
+        'above EMA'
+    else
+        'below EMA'
+
+//Panel Plot
+if pan
+    lable1(off, 50, 'RSI cross ' + ud() + ' price : ' + str.tostring(Round(revma, dec)) + '\n\n' + str.tostring(Round(ob, dec)) + ' upper band price : ' + str.tostring(Round(revob, dec)) + '\n\n' + str.tostring(Round(os, dec)) + ' lower band price : ' + str.tostring(Round(revos, dec)), labelstyle, labelc)
+
+
+if s
+    lable1(1, ersi, str.tostring(Round(ersi, dec)) + ' RSI Price : ' + str.tostring(Round(reversi, dec)), labelstyle2, labelc)
+
+
+if s2
+    lable1(1, rrrsi, 'RSI ' + str.tostring(Round(rrrsi, dec)) + ' For Input Price ' + str.tostring(Round(ip, dec)), labelstyle2, labelc)
