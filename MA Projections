@@ -25,7 +25,7 @@ sma_color = 	input.color(#E65100, '',	inline = 'MA 2', group = 'Moving Averages'
 
 ROCL = input.int(12,'Derivative MA Length', group = 'Projection Settings', tooltip = 'The period length in which the average rate of change of each MA is calculated', minval = 1)
 n = input.int(52, 'Number of Future Bars', group = 'Projection Settings', tooltip = 'The number of bars to be projected into the future for the MAs', maxval = 250, minval = 2)
-op = input.int(20, 'Minimum Projection Opacity', group = 'Projection Settings', tooltip = 'The minimum opacity reached as the MA projection fades out')
+op = input.int(0, 'Minimum Projection Opacity', group = 'Projection Settings', tooltip = 'The minimum opacity reached as the MA projection fades out')
 comp = input.bool(true, 'Use Compounding Projection?', group = 'Projection Settings', tooltip = 'Whether to use compounding calculations (i.e. % rate of change instead of absolute value) when projecting the MA into the future')
 
 // Definitions
