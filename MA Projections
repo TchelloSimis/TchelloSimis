@@ -18,7 +18,7 @@ indicator(title="MAs with Derivative-based Projections", shorttitle="MAs with Pr
 string ema_type = input.string('EMA', '1st MA Type', inline = 'MA 1', group = 'Moving Averages', options = ["EMA", "SMA", "WMA", "HMA"])
 ema_length = 	input.int(233, '1st MA Length', inline = 'MA 1', group = 'Moving Averages')
 ema_color = 	input.color(#00BCD4, '', inline = 'MA 1', group = 'Moving Averages')
-string sma_type = input.string('SMA', '1st MA Type', inline = 'MA 2', group = 'Moving Averages', options = ["EMA", "SMA", "WMA", "HMA"])
+string sma_type = input.string('SMA', '2nd MA Type', inline = 'MA 2', group = 'Moving Averages', options = ["EMA", "SMA", "WMA", "HMA"])
 sma_length = 	input.int(200, '2nd MA Length', inline = 'MA 2', group = 'Moving Averages')
 sma_color = 	input.color(#E65100, '',	inline = 'MA 2', group = 'Moving Averages')
 
