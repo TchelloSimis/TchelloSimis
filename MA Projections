@@ -61,7 +61,7 @@ var arr_lines_MA2 = array.new_line ( n )
 bar_index_as_time = time_close - time_close[1]
 f_X_Loc ( i )    => time_close + ( bar_index_as_time * i )
 
-// Draw Projections For Compounding
+// Draw Projections
 if barstate.islast
     prev_ema_value = ema_value
     prev_sma_value = sma_value
