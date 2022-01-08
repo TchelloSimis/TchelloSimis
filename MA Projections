@@ -9,6 +9,7 @@
 // A: This is a PineScript limitation. Pine can only plot 500 objects on screen at once. Since there are two MAs, we can only use 250 for each. 
 // 2) Can I use this for MTF MAs? Like seeing the 20w SMA while looking at the 4hr chart.
 // A: No. Again, this is a Pine limitation. Due to the way the projections are plotted, it simply does not allow me to code this for MTF.
+// VERY IMPORTANT: This script is very limited when looking at replay mode and when a new bar closes. Unfortunately the solution is way way too complicated for me. I have created a branch called "replay_enabled" that fixes this but only allows linear projection.
 
 //@version=5
 
