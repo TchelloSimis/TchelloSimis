@@ -1,5 +1,5 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// © TchelloSimis
+// © TchelloSimis with HUGE HUGE thanks to TrendEspresso, which is simply put a Pine wizard. 
 // This script projects two different moving averages into the future by using an average of their past rate of change (aka the first derivative). 
 // All other scripts (that I have seen) are limited in the sense that they need user-based input of projected price rate of change, whereas this script projects that change using an average of past data.
 // This one also supports multiple different MA types: Simple MA (SMA), Exponential MA (EMA), Weighted MA(WMA) and Hull MA(HMA). 
@@ -12,7 +12,8 @@
 
 //@version=5
 
-indicator(title="MAs with Derivative-based Projections", shorttitle="MAs with Projections", overlay=true, max_lines_count=500)
+varip max_lines = 500
+indicator(title="MAs with Derivative-based Projections", shorttitle="MAs with Projections", overlay=true, max_lines_count=max_lines)
 
 // Inputs  
 string ema_type = input.string('EMA', '1st MA Type', inline = 'MA 1', group = 'Moving Averages', options = ["EMA", "SMA", "WMA", "HMA"])
@@ -39,28 +40,56 @@ sma_value = switch sma_type
     'WMA' => ta.wma(close, sma_length)
     'HMA' => ta.hma(close, sma_length)
 
-smaROC = sma_value - sma_value[1]
-emaROC = ema_value - ema_value[1]
+smaROC = ( sma_value - sma_value[n] ) / n
+emaROC = ( ema_value - ema_value[n] ) / n
 
-smaROCma = comp ? (ta.sma(smaROC, ROCL)/sma_value) : (ta.sma(smaROC, ROCL))
-emaROCma = comp ? (ta.sma(emaROC, ROCL)/ema_value) : (ta.sma(emaROC, ROCL))
+// smaROCma = comp ? (ta.sma(smaROC, ROCL)/sma_value) : (ta.sma(smaROC, ROCL))
+// emaROCma = comp ? (ta.sma(emaROC, ROCL)/ema_value) : (ta.sma(emaROC, ROCL))
 
 // Plots
 plot(ema_value, color=ema_color, title='1st MA', linewidth=2)
 plot(sma_value, color=sma_color, title='2nd MA', linewidth=2)
 
 
+// Delete all other lines
+// for i = 1 to max_lines
+//     line.new(na, na, na, na, xloc.bar_time, color = na)
+
+var arr_lines_MA1 = array.new_line ( n )
+var arr_lines_MA2 = array.new_line ( n )
+
+bar_index_as_time = time_close - time_close[1]
+f_X_Loc ( i )    => time_close + ( bar_index_as_time * i )
+
 // Draw Projections For Compounding
 if barstate.islast
-    new_ema_value = ema_value
-    new_sma_value = sma_value
-    for i = 1 to n - 1 by 1
-        x1 = bar_index + i - 1
-        x2 = bar_index + i
-        ema_value := comp ? ema_value * (1 + emaROCma) : ema_value + emaROCma
-        sma_value := comp ? sma_value * (1 + smaROCma) : sma_value + smaROCma
-        line.new(x1, new_ema_value, x2, ema_value, color=color.new(ema_color, ((100/n)*i) - op), style=line.style_dotted, width=2)
-        line.new(x1, new_sma_value, x2, sma_value, color=color.new(sma_color, ((100/n)*i) - op), style=line.style_dotted, width=2)
-        new_ema_value := ema_value
-        new_sma_value := sma_value
-        new_sma_value
+    prev_ema_value = ema_value
+    prev_sma_value = sma_value
+    for i = 0 to n - 1 by 1
+        ext = i >= n - 1 ? extend.right : extend.none
+        x1 = f_X_Loc ( i - 1 )
+        x2 = f_X_Loc ( i )
+        ema_value := prev_ema_value + emaROC
+        sma_value := prev_sma_value + smaROC
+        line.delete ( array.get ( arr_lines_MA1, i ) )
+        line.delete ( array.get ( arr_lines_MA2, i ) )
+        array.set ( arr_lines_MA1, i, line.new(x1,
+                                               prev_ema_value,
+                                               x2,
+                                               ema_value,
+                                               xloc.bar_time,
+                                               ext,
+                                               color.new(ema_color, ((100/n)*i) - op),
+                                               line.style_dotted,
+                                               2) )
+        array.set ( arr_lines_MA2, i, line.new(x1,
+                                               prev_sma_value,
+                                               x2,
+                                               sma_value,
+                                               xloc.bar_time,
+                                               ext,
+                                               color.new(sma_color, ((100/n)*i) - op),
+                                               line.style_dotted,
+                                               2) )
+        prev_ema_value := ema_value
+        prev_sma_value := sma_value
