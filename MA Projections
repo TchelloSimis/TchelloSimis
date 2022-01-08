@@ -1,0 +1,66 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © TchelloSimis
+// This script projects two different moving averages into the future by using an average of their past rate of change (aka the first derivative). 
+// All other scripts (that I have seen) are limited in the sense that they need user-based input of projected price rate of change, whereas this script projects that change using an average of past data.
+// This one also supports multiple different MA types: Simple MA (SMA), Exponential MA (EMA), Weighted MA(WMA) and Hull MA(HMA). 
+// Do note that projections towards the future are always a guess and will be, 99% of the time, incorrect. This is mostly a utility script and predictions using it must be very well thought through. 
+// FAQs:
+// 1) Why a max 250 candles into the future? 
+// A: This is a PineScript limitation. Pine can only plot 500 objects on screen at once. Since there are two MAs, we can only use 250 for each. 
+// 2) Can I use this for MTF MAs? Like seeing the 20w SMA while looking at the 4hr chart.
+// A: No. Again, this is a Pine limitation. Due to the way the projections are plotted, it simply does not allow me to code this for MTF.
+
+//@version=5
+
+indicator(title="MAs with Derivative-based Projections", shorttitle="MAs with Projections", overlay=true, max_lines_count=500)
+
+// Inputs  
+string ema_type = input.string('EMA', '1st MA Type', inline = 'MA 1', group = 'Moving Averages', options = ["EMA", "SMA", "WMA", "HMA"])
+ema_length = 	input.int(233, '1st MA Length', inline = 'MA 1', group = 'Moving Averages')
+ema_color = 	input.color(#00BCD4, '', inline = 'MA 1', group = 'Moving Averages')
+string sma_type = input.string('SMA', '1st MA Type', inline = 'MA 2', group = 'Moving Averages', options = ["EMA", "SMA", "WMA", "HMA"])
+sma_length = 	input.int(200, '2nd MA Length', inline = 'MA 2', group = 'Moving Averages')
+sma_color = 	input.color(#E65100, '',	inline = 'MA 2', group = 'Moving Averages')
+
+ROCL = input.int(12,'Derivative MA Length', group = 'Projection Settings', tooltip = 'The period length in which the average rate of change of each MA is calculated', minval = 1)
+n = input.int(52, 'Number of Future Bars', group = 'Projection Settings', tooltip = 'The number of bars to be projected into the future for the MAs', maxval = 250, minval = 2)
+op = input.int(20, 'Minimum Projection Opacity', group = 'Projection Settings', tooltip = 'The minimum opacity reached as the MA projection fades out')
+comp = input.bool(true, 'Use Compounding Projection?', group = 'Projection Settings', tooltip = 'Whether to use compounding calculations (i.e. % rate of change instead of absolute value) when projecting the MA into the future')
+
+// Definitions
+ema_value = switch ema_type 
+    'EMA' => ta.ema(close, ema_length)
+    'SMA' => ta.sma(close, ema_length)
+    'WMA' => ta.wma(close, ema_length)
+    'HMA' => ta.hma(close, ema_length)
+sma_value = switch sma_type 
+    'EMA' => ta.ema(close, sma_length)
+    'SMA' => ta.sma(close, sma_length)
+    'WMA' => ta.wma(close, sma_length)
+    'HMA' => ta.hma(close, sma_length)
+
+smaROC = sma_value - sma_value[1]
+emaROC = ema_value - ema_value[1]
+
+smaROCma = comp ? (ta.sma(smaROC, ROCL)/sma_value) : (ta.sma(smaROC, ROCL))
+emaROCma = comp ? (ta.sma(emaROC, ROCL)/ema_value) : (ta.sma(emaROC, ROCL))
+
+// Plots
+plot(ema_value, color=ema_color, title='1st MA', linewidth=2)
+plot(sma_value, color=sma_color, title='2nd MA', linewidth=2)
+
+
+// Draw Projections For Compounding
+if barstate.islast
+    new_ema_value = ema_value
+    new_sma_value = sma_value
+    for i = 1 to n - 1 by 1
+        x1 = bar_index + i - 1
+        x2 = bar_index + i
+        ema_value := comp ? ema_value * (1 + emaROCma) : ema_value + emaROCma
+        sma_value := comp ? sma_value * (1 + smaROCma) : sma_value + smaROCma
+        line.new(x1, new_ema_value, x2, ema_value, color=color.new(ema_color, ((100/n)*i) - op), style=line.style_dotted, width=2)
+        line.new(x1, new_sma_value, x2, sma_value, color=color.new(sma_color, ((100/n)*i) - op), style=line.style_dotted, width=2)
+        new_ema_value := ema_value
+        new_sma_value := sma_value
+        new_sma_value
