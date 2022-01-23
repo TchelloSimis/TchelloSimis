@@ -2,7 +2,7 @@
 // This script plots the On-Balance volume along with a Arnaud Legoux Moving average and a dispersion zone. Everything changes colors based on the trend. 
 
 //@version=5
-indicator(title="On Balance Volume + ALMA + Dispersion Zone", shorttitle="OBV + ALMA + DZ", format=format.volume, timeframe="", timeframe_gaps=true)
+indicator(title="On Balance Volume + ALMA + Dispersion Zone", shorttitle="OBV + ALMA + DZ", format=format.volume, overlay = false, max_labels_count = 500)
 
 // OBV
 var cumVol = 0.
@@ -11,16 +11,21 @@ if barstate.islast and cumVol == 0
     runtime.error("No volume is provided by the data vendor.")
     
 // Inputs
-src = input.source(close, title = 'Source', group = 'OBV and ALMA Settings')
-len = input.int(89, title = 'ALMA Length')
+src = input.source(close, title = 'Source ', group = 'OBV and ALMA Settings')
+len = input.int(89, title = 'ALMA Length', group = 'OBV and ALMA Settings')
 offset = input.float(0.5, title = 'ALMA Offset', minval = 0, maxval = 1, step = 0.01, tooltip = 'Controls the tradeoff between uniformity (closer to 1) and responsiveness (closer to 0).', group = 'OBV and ALMA Settings')
 sigma = input.float(5, title = 'ALMA Sigma', minval = 0, tooltip = 'Changes ALMA uniformity. Larger values imply more uniform ALMA.', group = 'OBV and ALMA Settings')
+obvUp = input.color(#26C6DA, title = 'Up Color ', group = 'OBV and ALMA Settings', inline = 'OBV1')
+obvMid = input.color(#FFB74D, title = 'Mid Color ', group = 'OBV and ALMA Settings', inline = 'OBV1')
+obvDown = input.color(#EC407A, title = 'Down Color ', group = 'OBV and ALMA Settings', inline = 'OBV1')
+dispT = input.bool(true, 'Show Dispersion Zone?', group = 'Dispersion Zone Settings')
 mult = input.float(0.21, title = 'Dispersion Zone Multiplier', maxval = 1, minval = 0, step = 0.01, group = 'Dispersion Zone Settings')
-obvUp = input.color(#26C6DA, title = 'OBV Up Color', group = 'OBV and ALMA Settings')
-obvMid = input.color(#FFB74D, title = 'OBV Mid Color', group = 'OBV and ALMA Settings')
-obvDown = input.color(#EC407A, title = 'OBV Down Color', group = 'OBV and ALMA Settings')
-maUp = input.color(#009688, title = 'Dispersion Zone Up Color', group = 'Dispersion Zone Settings')
-maDown = input.color(#783DB0, title = 'Dispersion Zone Down Color', group = 'Dispersion Zone Settings')
+maUp = input.color(#009688, title = 'Up Color ', group = 'Dispersion Zone Settings', inline = 'DISP1')
+maDown = input.color(#783DB0, title = 'Down Color ', group = 'Dispersion Zone Settings', inline = 'DISP1')
+period = input.int(180, title = 'Period for high/low labels', group = 'Label Settings')
+infot = input.bool(true, 'Show information label?', group = 'Label Settings', tooltip = 'Average volume is calculated with the same length as ALMA.')
+lowt = input.bool(true, 'Show period low labels?', group = 'Label Settings')
+hight = input.bool(true, 'Show period high labels?', group = 'Label Settings')
 
 // Definitions
 obv = ta.cum(math.sign(ta.change(src)) * volume)
@@ -32,10 +37,11 @@ lowerB = ma - 2*stand
 upperD = ma + ((upperB-lowerB)*mult)
 lowerD = ma - ((upperB-lowerB)*mult)
 
+
 // Colors
 obvC = obv > upperD ? obvUp : (obv > lowerD ? obvMid : obvDown)
 maC = sma > sma[1] ? maUp : maDown
-dispC = color.new(maC, 80)
+dispC = dispT ? color.new(maC, 80) : na
 
 //Plots
 lower = plot(lowerD, display = display.none)
@@ -43,3 +49,39 @@ upper = plot(upperD, display = display.none)
 fill(lower, upper, color = dispC)
 plot(obv, color=obvC, title="OBV", linewidth = 3)
 plot(ma, color = maC, linewidth = 2, title = 'ALMA')
+
+//Labels
+
+    // Text conditions
+AbovBel = obv > ma ? 'above' : 'below'
+UpDown = sma > sma[1] ? 'uptrend' : 'downtrend'
+uptrend = ta.barssince(sma <= sma[1])
+downtrend = ta.barssince(sma >= sma[1])
+counter = sma > sma[1] ? uptrend : downtrend
+    
+    // Text lines
+line1 = 'OBV is ' + str.tostring(math.abs(math.round((((obv/ma) - 1) * 100), 2))) + '% (' + str.tostring(math.abs(math.round(((obv - ma)/stand), 2))) + ' std. devs.) ' + AbovBel + ' the ALMA'
+line2 = '\nIt has been in a ' + UpDown + ' for ' + str.tostring(counter) + ' candles'
+line3 = '\nCrossing it requires ' + str.tostring(math.round((math.abs(obv - ma)/ta.sma(volume, len)), 2)) + ' times the average volume'
+
+    // Info Label
+if barstate.islast and infot
+    
+        // Create the label
+    var lbl = label.new(na, na, style = label.style_label_left, color = color.new(maC, 85), textcolor = color.white, size = size.normal)
+    
+      // Update the label position to last candle
+    label.set_xy(lbl, bar_index + 5, ma)
+    label.set_text(lbl, line1 + line2 + line3)
+    
+    // Labels for set period highs/lows
+lowcond = obv < ta.lowest(obv, period)[1]
+hicond = (obv > ta.highest(obv, period)[1])
+
+        // Low labels
+if (lowcond and lowt)
+    label.new(bar_index, obv, '▲', style = label.style_label_up, color = color.new(color.white, 100), textcolor = obvC)
+
+        // High labels
+if (hicond and hight)
+    label.new(bar_index, obv, '▼', style = label.style_label_down, color = color.new(color.white, 100), textcolor = obvC)
